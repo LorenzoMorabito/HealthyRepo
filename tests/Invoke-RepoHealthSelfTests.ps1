@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $frameworkRoot = Split-Path -Parent $scriptRoot
 if (-not $SourceRepositoryRoot) {
-    $SourceRepositoryRoot = Split-Path -Parent $frameworkRoot
+    $SourceRepositoryRoot = $frameworkRoot
 }
 
 . (Join-Path $scriptRoot "RepoHealth.TestCommon.ps1")
@@ -98,6 +98,34 @@ Invoke-RepoHealthNamedTest -Name "Installer renders config, workflows, and gitig
     }
 }
 
+Invoke-RepoHealthNamedTest -Name "Package builder creates a versioned artifact installable by version" -Action {
+    $tempRepo = New-RepoHealthTestTempDirectory -Prefix "repo-health-selftest-package"
+    $tempFeed = New-RepoHealthTestTempDirectory -Prefix "repo-health-selftest-feed"
+    try {
+        Initialize-RepoHealthTestRepository -Path $tempRepo | Out-Null
+        $manifest = Get-RepoHealthSourceManifest -SourceRepositoryRoot $SourceRepositoryRoot
+        $packageInfo = Build-RepoHealthPackageFromSource -SourceRepositoryRoot $SourceRepositoryRoot -OutputRoot $tempFeed
+
+        Assert-RepoHealthEqual -Actual $packageInfo.version -Expected ([string]$manifest.version) -Message "Package build must use the manifest version."
+        Assert-RepoHealthPathExists -Path $packageInfo.package_zip_path -Message "Package build must produce a zip artifact."
+
+        $installResult = Install-RepoHealthFrameworkIntoTestRepository `
+            -SourceRepositoryRoot $SourceRepositoryRoot `
+            -TargetRepositoryRoot $tempRepo `
+            -Version ([string]$manifest.version) `
+            -PackageFeedRoot $tempFeed
+
+        Assert-RepoHealthEqual -Actual $installResult.installed_version -Expected ([string]$manifest.version) -Message "Installer must install the requested package version."
+        Assert-RepoHealthEqual -Actual $installResult.package_source_type -Expected "version" -Message "Installer must report version-based package installation."
+        Assert-RepoHealthPathExists -Path (Join-Path $tempRepo "repository-health/analyzer.ps1") -Message "Version install must copy analyzer."
+    }
+    finally {
+        if (-not $KeepTemporaryRepositories) {
+            Remove-RepoHealthTestDirectory -Path $tempRepo
+            Remove-RepoHealthTestDirectory -Path $tempFeed
+        }
+    }
+}
 Invoke-RepoHealthNamedTest -Name "Analyzer local mode generates expected artifacts" -Action {
     $tempRepo = New-RepoHealthTestTempDirectory -Prefix "repo-health-selftest-local"
     try {
@@ -260,3 +288,5 @@ if ($env:GITHUB_STEP_SUMMARY) {
 if ($failCount -gt 0) {
     exit 1
 }
+
+

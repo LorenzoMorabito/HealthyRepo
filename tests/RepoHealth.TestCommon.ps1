@@ -12,8 +12,8 @@ function New-RepoHealthTestTempDirectory {
 function Remove-RepoHealthTestDirectory {
     param([string]$Path)
 
-    if ($Path -and (Test-Path $Path)) {
-        Remove-Item -Path $Path -Recurse -Force
+    if ($Path -and (Test-Path -LiteralPath $Path)) {
+        Remove-Item -LiteralPath $Path -Recurse -Force
     }
 }
 
@@ -39,13 +39,36 @@ function Invoke-RepoHealthTestGit {
     return @($output)
 }
 
+function Resolve-RepoHealthSourceRoot {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $resolved = (Resolve-Path -LiteralPath $Path).Path
+    foreach ($candidate in @($resolved, (Join-Path $resolved "repository-health"))) {
+        if (
+            (Test-Path -LiteralPath (Join-Path $candidate "manifest.json")) -and
+            (Test-Path -LiteralPath (Join-Path $candidate "distribution/Install-RepoHealthFramework.ps1"))
+        ) {
+            return $candidate
+        }
+    }
+
+    throw "Unable to resolve the repository-health source root from: $Path"
+}
+
+function Get-RepoHealthSourceManifest {
+    param([Parameter(Mandatory = $true)][string]$SourceRepositoryRoot)
+
+    $sourceRoot = Resolve-RepoHealthSourceRoot -Path $SourceRepositoryRoot
+    return Get-Content -Path (Join-Path $sourceRoot "manifest.json") -Raw | ConvertFrom-Json
+}
+
 function Initialize-RepoHealthTestRepository {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [switch]$CreateBareRemote
     )
 
-    if (-not (Test-Path $Path)) {
+    if (-not (Test-Path -LiteralPath $Path)) {
         New-Item -ItemType Directory -Path $Path -Force | Out-Null
     }
 
@@ -86,7 +109,7 @@ function Invoke-RepoHealthInstalledScript {
     )
 
     $scriptPath = Join-Path $RepositoryRoot $ScriptRelativePath
-    if (-not (Test-Path $scriptPath)) {
+    if (-not (Test-Path -LiteralPath $scriptPath)) {
         throw "Installed script not found for test invocation: $scriptPath"
     }
 
@@ -105,18 +128,53 @@ function Invoke-RepoHealthInstalledScript {
     }
 }
 
+function Build-RepoHealthPackageFromSource {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceRepositoryRoot,
+        [Parameter(Mandatory = $true)][string]$OutputRoot
+    )
+
+    $sourceRoot = Resolve-RepoHealthSourceRoot -Path $SourceRepositoryRoot
+    $builderPath = Join-Path $sourceRoot "distribution/Build-RepoHealthPackage.ps1"
+    if (-not (Test-Path -LiteralPath $builderPath)) {
+        throw "Package builder not found: $builderPath"
+    }
+
+    return & $builderPath -SourceRepositoryRoot $sourceRoot -OutputRoot $OutputRoot -Force
+}
+
 function Install-RepoHealthFrameworkIntoTestRepository {
     param(
         [Parameter(Mandatory = $true)][string]$SourceRepositoryRoot,
-        [Parameter(Mandatory = $true)][string]$TargetRepositoryRoot
+        [Parameter(Mandatory = $true)][string]$TargetRepositoryRoot,
+        [string]$Version,
+        [string]$PackageFeedRoot,
+        [string]$PackageZipPath
     )
 
-    $installerPath = Join-Path $SourceRepositoryRoot "repository-health/distribution/Install-RepoHealthFramework.ps1"
-    if (-not (Test-Path $installerPath)) {
+    $sourceRoot = Resolve-RepoHealthSourceRoot -Path $SourceRepositoryRoot
+    $installerPath = Join-Path $sourceRoot "distribution/Install-RepoHealthFramework.ps1"
+    if (-not (Test-Path -LiteralPath $installerPath)) {
         throw "Installer not found: $installerPath"
     }
 
-    return & $installerPath -TargetRepositoryRoot $TargetRepositoryRoot
+    $arguments = @{
+        TargetRepositoryRoot = $TargetRepositoryRoot
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Version)) {
+        $arguments["Version"] = $Version
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PackageFeedRoot)) {
+        $arguments["PackageFeedRoot"] = $PackageFeedRoot
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PackageZipPath)) {
+        $arguments["PackageZipPath"] = $PackageZipPath
+    }
+
+    return & $installerPath @arguments
 }
 
 function Assert-RepoHealthTrue {
@@ -148,7 +206,7 @@ function Assert-RepoHealthPathExists {
         [Parameter(Mandatory = $true)][string]$Message
     )
 
-    if (-not (Test-Path $Path)) {
+    if (-not (Test-Path -LiteralPath $Path)) {
         throw ("{0}`nMissing path: {1}" -f $Message, $Path)
     }
 }

@@ -1,0 +1,52 @@
+name: Repo Health Release Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-package:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag matches manifest version
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $manifest = Get-Content ./manifest.json -Raw | ConvertFrom-Json
+          $expectedTag = "v$($manifest.version)"
+          if ('${{ github.ref_name }}' -ne $expectedTag) {
+            throw "Tag does not match manifest version. Tag=${{ github.ref_name }} Manifest=$expectedTag"
+          }
+
+      - name: Build release package
+        id: build
+        shell: pwsh
+        run: |
+          $result = ./distribution/Build-RepoHealthPackage.ps1 -Force
+          Add-Content -Path $env:GITHUB_OUTPUT -Value ("package_zip={0}" -f $result.package_zip_path)
+          Add-Content -Path $env:GITHUB_OUTPUT -Value ("package_version={0}" -f $result.version)
+          Add-Content -Path $env:GITHUB_OUTPUT -Value ("release_tag={0}" -f $result.release_tag)
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-health-package-${{ steps.build.outputs.package_version }}
+          path: ${{ steps.build.outputs.package_zip }}
+
+      - name: Publish GitHub release asset
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.build.outputs.package_zip }}
+          generate_release_notes: true

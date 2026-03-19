@@ -1,9 +1,13 @@
 {
   "tool_id": "repository-health",
   "name": "Repository Health Monitoring Framework",
-  "version": "0.3.0",
-  "distribution_mode": "installer-template",
+  "version": "0.4.0",
+  "distribution_mode": "release-package",
   "ci_target": "github-actions",
   "default_framework_root": "repository-health",
-  "default_data_branch": "repo-health-data"
+  "default_data_branch": "repo-health-data",
+  "release_repository": "LorenzoMorabito/HealthyRepo",
+  "release_tag_pattern": "v{version}",
+  "package_asset_name_pattern": "repository-health-v{version}.zip",
+  "package_directory_name_pattern": "repository-health-v{version}"
 }

@@ -2,3 +2,5 @@
 !/outputs/current/.gitkeep
 /outputs/history/*
 !/outputs/history/.gitkeep
+/distribution/packages/*
+!/distribution/packages/.gitkeep
