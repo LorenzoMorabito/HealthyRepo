@@ -1,0 +1,98 @@
+name: Repo Health PR Validation
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  repo-health-pr:
+    if: github.ref != 'refs/heads/__DATA_BRANCH_NAME__'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare repo-health data branch worktree
+        shell: pwsh
+        run: |
+          $worktreePath = Join-Path $env:RUNNER_TEMP '__DATA_BRANCH_NAME__'
+          $result = ./__FRAMEWORK_ROOT__/scripts/Prepare-RepoHealthDataBranch.ps1 `
+            -WorktreePath $worktreePath
+          Add-Content -Path $env:GITHUB_ENV -Value ("REPO_HEALTH_DATA_BRANCH={0}" -f $result.branch_name)
+          Add-Content -Path $env:GITHUB_ENV -Value ("REPO_HEALTH_HISTORY_ROOT={0}" -f $result.history_root_path)
+
+      - name: Run repository health analyzer
+        id: analyze
+        shell: pwsh
+        run: |
+          $runTimestamp = Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ"
+          ./__FRAMEWORK_ROOT__/analyzer.ps1 `
+            -Mode pr `
+            -ConfigPath ./__FRAMEWORK_ROOT__/config.json `
+            -OutputRoot ./__FRAMEWORK_ROOT__/outputs `
+            -HistoryRootPath $env:REPO_HEALTH_HISTORY_ROOT `
+            -RunTimestamp $runTimestamp `
+            -RepositoryName '${{ github.repository }}' `
+            -BranchName '${{ github.head_ref }}' `
+            -CommitSha '${{ github.event.pull_request.head.sha }}' `
+            -FailOnThresholdBreach
+
+      - name: Append summary to workflow run
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path ./__FRAMEWORK_ROOT__/outputs/current/summary.md) {
+            Get-Content ./__FRAMEWORK_ROOT__/outputs/current/summary.md | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          else {
+            "Repo health summary not produced." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload repo health artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-health-pr-${{ github.event.pull_request.number }}
+          path: __FRAMEWORK_ROOT__/outputs
+
+      - name: Comment PR with repo health summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summaryPath = '__FRAMEWORK_ROOT__/outputs/current/summary.md';
+            const marker = '<!-- repo-health-comment -->';
+            const summaryBody = fs.existsSync(summaryPath)
+              ? fs.readFileSync(summaryPath, 'utf8')
+              : 'Repo health summary not produced.';
+            const body = `${marker}\n${summaryBody}`;
+            const {owner, repo} = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number
+            });
+            const existing = comments.find(comment => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body
+              });
+            }

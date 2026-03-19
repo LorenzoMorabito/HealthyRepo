@@ -1,0 +1,7 @@
+# BEGIN REPO-HEALTH
+# Repo health generated outputs are runtime artifacts and should not be committed.
+/__FRAMEWORK_ROOT__/outputs/current/*
+!/__FRAMEWORK_ROOT__/outputs/current/.gitkeep
+/__FRAMEWORK_ROOT__/outputs/history/*
+!/__FRAMEWORK_ROOT__/outputs/history/.gitkeep
+# END REPO-HEALTH

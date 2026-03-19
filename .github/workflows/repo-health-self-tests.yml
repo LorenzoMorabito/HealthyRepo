@@ -1,0 +1,32 @@
+name: Repo Health Self Tests
+
+on:
+  pull_request:
+    paths:
+      - 'repository-health/**'
+      - '.github/workflows/repo-health-*.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'repository-health/**'
+      - '.github/workflows/repo-health-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repo-health-self-tests:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run repository-health self-tests
+        shell: pwsh
+        run: |
+          ./repository-health/tests/Invoke-RepoHealthSelfTests.ps1

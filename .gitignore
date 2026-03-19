@@ -1,0 +1,4 @@
+/outputs/current/*
+!/outputs/current/.gitkeep
+/outputs/history/*
+!/outputs/history/.gitkeep

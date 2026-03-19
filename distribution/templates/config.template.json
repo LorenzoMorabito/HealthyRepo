@@ -1,0 +1,31 @@
+{
+  "data_branch_name": "__DATA_BRANCH_NAME__",
+  "history_root_relative_path": "__FRAMEWORK_ROOT__/history",
+  "runs_directory_name": "runs",
+  "git_sizer_directory_name": "git-sizer",
+  "max_blob_mb": 5,
+  "max_pack_mb": 100,
+  "max_growth_pct": 20,
+  "warn_current_file_mb": 1,
+  "top_n": 10,
+  "forbidden_extensions": [
+    ".pbix",
+    ".pbit",
+    ".xlsx",
+    ".csv"
+  ],
+  "excluded_paths": [
+    "data_source/",
+    "xml_oas/",
+    ".pbi/",
+    "__FRAMEWORK_ROOT__/outputs/"
+  ],
+  "allowed_tracked_excluded_paths": [
+    "__FRAMEWORK_ROOT__/outputs/current/.gitkeep",
+    "__FRAMEWORK_ROOT__/outputs/history/.gitkeep"
+  ],
+  "history_csv_name": "metrics-history.csv",
+  "top_files_history_csv_name": "top-files-history.csv",
+  "latest_metrics_name": "latest.json",
+  "git_sizer_output_name": "git-sizer.txt"
+}

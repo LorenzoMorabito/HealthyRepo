@@ -1,0 +1,9 @@
+{
+  "tool_id": "repository-health",
+  "name": "Repository Health Monitoring Framework",
+  "version": "0.3.0",
+  "distribution_mode": "installer-template",
+  "ci_target": "github-actions",
+  "default_framework_root": "repository-health",
+  "default_data_branch": "repo-health-data"
+}
