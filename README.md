@@ -12,16 +12,24 @@ Framework PowerShell + GitHub Actions per monitorare la salute Git di una reposi
 
 ## Quick start locale
 
-Check veloce:
+In repo standalone, dalla root di `repository-health`:
 
 ```powershell
-./repository-health/analyzer.ps1 -Mode local
+./analyzer.ps1 -Mode local
+```
+
+Per analizzare una repo esterna in modo esplicito:
+
+```powershell
+./analyzer.ps1 `
+  -Mode local `
+  -RepoRootPath C:\path\to\target-repo
 ```
 
 Check bloccante:
 
 ```powershell
-./repository-health/analyzer.ps1 `
+./analyzer.ps1 `
   -Mode local `
   -FailOnThresholdBreach
 ```
@@ -29,7 +37,7 @@ Check bloccante:
 Audit completo:
 
 ```powershell
-./repository-health/analyzer.ps1 `
+./analyzer.ps1 `
   -Mode schedule `
   -EnableGitSizer
 ```

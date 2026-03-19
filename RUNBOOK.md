@@ -7,7 +7,7 @@ Questo runbook serve per usare rapidamente il framework `repository-health` in l
 ## 1. Check veloce locale
 
 ```powershell
-./repository-health/analyzer.ps1 -Mode local
+./analyzer.ps1 -Mode local
 ```
 
 Usalo:
@@ -18,14 +18,14 @@ Usalo:
 
 Output principali:
 
-- `repository-health/outputs/current/metrics.json`
-- `repository-health/outputs/current/summary.md`
-- `repository-health/outputs/current/dashboard.html`
+- `outputs/current/metrics.json`
+- `outputs/current/summary.md`
+- `outputs/current/dashboard.html`
 
 ## 2. Check locale bloccante
 
 ```powershell
-./repository-health/analyzer.ps1 `
+./analyzer.ps1 `
   -Mode local `
   -FailOnThresholdBreach
 ```
@@ -38,7 +38,7 @@ Comportamento:
 ## 3. Audit completo locale
 
 ```powershell
-./repository-health/analyzer.ps1 `
+./analyzer.ps1 `
   -Mode schedule `
   -EnableGitSizer
 ```
@@ -82,9 +82,9 @@ In caso di `FAIL`, il change non è pronto per merge senza fix o decisione espli
 
 Controlla:
 
-- `repository-health/outputs/current/summary.md`
-- `repository-health/outputs/current/dashboard.html`
-- `repository-health/outputs/history/top-files-history.csv`
+- `outputs/current/summary.md`
+- `outputs/current/dashboard.html`
+- `outputs/history/top-files-history.csv`
 
 Domande da fare:
 
@@ -121,7 +121,7 @@ Azione:
 
 Storico runtime locale:
 
-- `repository-health/outputs/history/`
+- `outputs/history/`
 
 Storico persistente autorevole:
 
@@ -130,7 +130,7 @@ Storico persistente autorevole:
 
 Dashboard:
 
-- `repository-health/outputs/current/dashboard.html`
+- `outputs/current/dashboard.html`
 
 Importante:
 
@@ -180,19 +180,19 @@ Comportamento:
 Check veloce:
 
 ```powershell
-./repository-health/analyzer.ps1 -Mode local
+./analyzer.ps1 -Mode local
 ```
 
 Check bloccante:
 
 ```powershell
-./repository-health/analyzer.ps1 -Mode local -FailOnThresholdBreach
+./analyzer.ps1 -Mode local -FailOnThresholdBreach
 ```
 
 Audit completo:
 
 ```powershell
-./repository-health/analyzer.ps1 -Mode schedule -EnableGitSizer
+./analyzer.ps1 -Mode schedule -EnableGitSizer
 ```
 
 ## 9. Regola pratica

@@ -7,6 +7,7 @@ param(
     [switch]$WriteHistory,
     [string]$HistoryRootPath,
     [string]$RunTimestamp,
+    [string]$RepoRootPath,
     [string]$RepositoryName,
     [string]$CommitSha,
     [string]$BranchName,
@@ -18,8 +19,31 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Split-Path -Parent $scriptRoot
 . (Join-Path $scriptRoot "scripts/RepoHealth.Common.ps1")
+
+if (-not [string]::IsNullOrWhiteSpace($RepoRootPath)) {
+    $repoRoot = (Resolve-Path -LiteralPath $RepoRootPath).Path
+}
+else {
+    $parentRoot = Split-Path -Parent $scriptRoot
+    $scriptRootHasGit = Test-Path -LiteralPath (Join-Path $scriptRoot ".git")
+    $parentRootHasGit = if (-not [string]::IsNullOrWhiteSpace($parentRoot)) {
+        Test-Path -LiteralPath (Join-Path $parentRoot ".git")
+    }
+    else {
+        $false
+    }
+
+    if ($scriptRootHasGit) {
+        $repoRoot = $scriptRoot
+    }
+    elseif ($parentRootHasGit) {
+        $repoRoot = $parentRoot
+    }
+    else {
+        $repoRoot = $scriptRoot
+    }
+}
 
 if (-not $ConfigPath) {
     $ConfigPath = Join-Path $scriptRoot "config.json"
